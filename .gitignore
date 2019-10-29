@@ -1,2 +1,6 @@
 vendor/
 .bundle/
+.DS_Store
+scripts/.DS_Store
+scripts/config/.DS_Store
+scripts/config/lib/.DS_Store
