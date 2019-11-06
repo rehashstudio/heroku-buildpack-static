@@ -6,6 +6,7 @@ events {
   accept_mutex on;
   worker_connections <%= worker_connections %>;
 }
+
 http {
   gzip on;
   gzip_comp_level 6;
@@ -13,27 +14,28 @@ http {
   gzip_types text/plain text/css application/json application/x-javascript text/xml application/xml application/xml+rss text/javascript;
   gzip_vary on;
   gzip_proxied any;
+
   server_tokens off;
+
 <% if logging['access'] %>
   access_log logs/access.log;
 <% else %>
   access_log off;
 <% end %>
+
 <% if debug %>
   error_log stderr debug;
   rewrite_log on;
 <% else %>
   error_log stderr <%= logging['error'] %>;
 <% end %>
+
   include mime.types;
   default_type application/octet-stream;
   sendfile on;
+
   #Must read the body in 5 seconds.
   client_body_timeout 5;
-
-  upstream app {
-    server app:<%= port %>;
-  }
 
   server {
     listen <%= port %> reuseport;
@@ -47,77 +49,58 @@ http {
   <% if proxies.any? %>
     resolver <%= resolver %>;
   <% end %>
+
   <% if basic_auth %>
     auth_basic "Restricted";
     auth_basic_user_file <%= basic_auth_htpasswd_path %>;
   <% end %>
+
     location / {
       mruby_post_read_handler /app/bin/config/lib/ngx_mruby/headers.rb cache;
       mruby_set $fallback /app/bin/config/lib/ngx_mruby/routes_fallback.rb cache;
     <% if clean_urls %>
-      try_files $uri.html @prerender $uri $uri/ $fallback;
+      try_files $uri.html $uri $uri/ $fallback;
     <% else %>
-      try_files $uri @prerender $uri/ $fallback;
+      try_files $uri $uri/ $fallback;
     <% end %>
     }
+
   <% if clean_urls %>
     location ~ \.html$ {
       try_files $uri =404;
     }
   <% end %>
+
   <% if https_only %>
     if ($http_x_forwarded_proto != "https") {
       return 301 https://$host$request_uri;
     }
   <% end %>
+
   <% if canonical_host %>
     if ($host != <%= canonical_host %>) {
       return 301 $http_x_forwarded_proto://<%= canonical_host %>$request_uri;
     }
   <% end %>
+
   <% routes.each do |route, path| %>
     location ~ ^<%= route %>$ {
       set $route <%= route %>;
       mruby_set $path /app/bin/config/lib/ngx_mruby/routes_path.rb cache;
       mruby_set $fallback /app/bin/config/lib/ngx_mruby/routes_fallback.rb cache;
     <% if clean_urls %>
-      try_files $uri.html @prerender $uri $uri/ $path $fallback;
+      try_files $uri.html $uri $uri/ $path $fallback;
     <% else %>
-      try_files $uri @prerender $path $fallback;
+      try_files $uri $path $fallback;
     <% end %>
     }
   <% end %>
+
   # need this b/c setting $fallback to =404 will try #{root}=404 instead of returning a 404
   location @404 {
     return 404;
   }
-  location @prerender {
-      proxy_set_header X-Prerender-Token XiMrthFSu4398amxo4it;
-      set $prerender 0;
-      if ($http_user_agent ~* "googlebot|bingbot|yandex|baiduspider|twitterbot|facebookexternalhit|rogerbot|linkedinbot|embedly|quora link preview|showyoubot|outbrain|pinterest\/0\.|pinterestbot|slackbot|vkShare|W3C_Validator|whatsapp") {
-          set $prerender 1;
-      }
-      if ($args ~ "_escaped_fragment_") {
-          set $prerender 1;
-      }
-      if ($http_user_agent ~ "Prerender") {
-          set $prerender 0;
-      }
-      if ($uri ~* "\.(js|css|xml|less|png|jpg|jpeg|gif|pdf|doc|txt|ico|rss|zip|mp3|rar|exe|wmv|doc|avi|ppt|mpg|mpeg|tif|wav|mov|psd|ai|xls|mp4|m4a|swf|dat|dmg|iso|flv|m4v|torrent|ttf|woff|svg|eot)") {
-          set $prerender 0;
-      }
-      #resolve using Google's DNS server to force DNS resolution and prevent caching of IPs
-      resolver 8.8.8.8;
-      if ($prerender = 1) {
-          #setting prerender as a variable forces DNS resolution since nginx caches IPs and doesnt play well with load balancing
-          set $prerender "service.prerender.io";
-          rewrite .* /$scheme://$host$request_uri? break;
-          proxy_pass http://$prerender;
-      }
-      if ($prerender = 0) {
-          rewrite .* /index.html break;
-      }
-  }
+
   # fallback proxy named match
   <% proxies.each do |location, hash| %>
     set $<%= hash['name'] %> <%= hash['host'] %>;
@@ -131,11 +114,13 @@ http {
       <% end %>
     }
   <% end %>
+
   # fallback redirects named match
   <% redirects.each do |path, hash| %>
     location @<%= path %> {
       return <%= hash['status'] || 301 %> <%= hash['url'] %>;
     }
   <% end %>
+
   }
 }
