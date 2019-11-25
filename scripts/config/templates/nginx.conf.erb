@@ -34,7 +34,6 @@ http {
   default_type application/octet-stream;
   sendfile on;
 
-  #Must read the body in 5 seconds.
   client_body_timeout 5;
 
   server {
@@ -67,7 +66,7 @@ http {
 
   <% if clean_urls %>
     location ~ \.html$ {
-      try_files $uri =404;
+      try_files $uri @prerender =404;
     }
   <% end %>
 
@@ -96,12 +95,29 @@ http {
     }
   <% end %>
 
-  # need this b/c setting $fallback to =404 will try #{root}=404 instead of returning a 404
   location @404 {
     return 404;
   }
 
-  location @prerender {
+  <% proxies.each do |location, hash| %>
+    set $<%= hash['name'] %> <%= hash['host'] %>;
+    location @<%= location %> {
+      rewrite ^<%= location %>/?(.*)$ <%= hash['path'] %>/$1 break;
+      proxy_pass $<%= hash['name'] %>;
+      proxy_ssl_server_name on;
+      <% %w(http https).each do |scheme| %>
+      proxy_redirect <%= hash["redirect_#{scheme}"] %> <%= location %>;
+      <% end %>
+    }
+  <% end %>
+
+  <% redirects.each do |path, hash| %>
+    location @<%= path %> {
+      return <%= hash['status'] || 301 %> <%= hash['url'] %>;
+    }
+  <% end %>
+
+    location @prerender {
       proxy_set_header X-Prerender-Token XiMrthFSu4398amxo4it;
 
       set $prerender 0;
@@ -118,12 +134,9 @@ http {
           set $prerender 0;
       }
 
-      #resolve using Google's DNS server to force DNS resolution and prevent caching of IPs
       resolver 8.8.8.8;
 
       if ($prerender = 1) {
-
-          #setting prerender as a variable forces DNS resolution since nginx caches IPs and doesnt play well with load balancing
           set $prerender "service.prerender.io";
           rewrite .* /$scheme://$host$request_uri? break;
           proxy_pass http://$prerender;
@@ -131,28 +144,6 @@ http {
       if ($prerender = 0) {
           rewrite .* /index.html break;
       }
-  }
-
-  # fallback proxy named match
-  <% proxies.each do |location, hash| %>
-    set $<%= hash['name'] %> <%= hash['host'] %>;
-    location @<%= location %> {
-      rewrite ^<%= location %>/?(.*)$ <%= hash['path'] %>/$1 break;
-      # can reuse variable set above
-      proxy_pass $<%= hash['name'] %>;
-      proxy_ssl_server_name on;
-      <% %w(http https).each do |scheme| %>
-      proxy_redirect <%= hash["redirect_#{scheme}"] %> <%= location %>;
-      <% end %>
     }
-  <% end %>
-
-  # fallback redirects named match
-  <% redirects.each do |path, hash| %>
-    location @<%= path %> {
-      return <%= hash['status'] || 301 %> <%= hash['url'] %>;
-    }
-  <% end %>
-
   }
 }
