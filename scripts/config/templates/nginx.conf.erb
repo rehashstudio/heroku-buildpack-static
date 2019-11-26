@@ -41,83 +41,9 @@ http {
     charset <%= encoding %>;
     port_in_redirect off;
     keepalive_timeout 5;
-    root <%= root %>;
-  <% if error_page %>
-    error_page 404 500 /<%= error_page %>;
-  <% end %>
-  <% if proxies.any? %>
-    resolver <%= resolver %>;
-  <% end %>
-
-  <% if basic_auth %>
-    auth_basic "Restricted";
-    auth_basic_user_file <%= basic_auth_htpasswd_path %>;
-  <% end %>
-
-    location / {
-      mruby_post_read_handler /app/bin/config/lib/ngx_mruby/headers.rb cache;
-      mruby_set $fallback /app/bin/config/lib/ngx_mruby/routes_fallback.rb cache;
-    <% if clean_urls %>
-      try_files $uri.html @prerender $uri $uri/ $fallback;
-    <% else %>
-      try_files $uri @prerender $uri/ $fallback;
-    <% end %>
-    }
-
-  <% if clean_urls %>
-    location ~ \.html$ {
-      try_files $uri @prerender =404;
-    }
-  <% end %>
-
-  <% if https_only %>
-    if ($http_x_forwarded_proto != "https") {
-      return 301 https://$host$request_uri;
-    }
-  <% end %>
-
-  <% if canonical_host %>
-    if ($host != <%= canonical_host %>) {
-      return 301 $http_x_forwarded_proto://<%= canonical_host %>$request_uri;
-    }
-  <% end %>
-
-  <% routes.each do |route, path| %>
-    location ~ ^<%= route %>$ {
-      set $route <%= route %>;
-      mruby_set $path /app/bin/config/lib/ngx_mruby/routes_path.rb cache;
-      mruby_set $fallback /app/bin/config/lib/ngx_mruby/routes_fallback.rb cache;
-    <% if clean_urls %>
-      try_files $uri.html @prerender $uri $uri/ $path $fallback;
-    <% else %>
-      try_files $uri @prerender $path $fallback;
-    <% end %>
-    }
-  <% end %>
-
-  location @404 {
-    return 404;
-  }
-
-  <% proxies.each do |location, hash| %>
-    set $<%= hash['name'] %> <%= hash['host'] %>;
-    location @<%= location %> {
-      rewrite ^<%= location %>/?(.*)$ <%= hash['path'] %>/$1 break;
-      proxy_pass $<%= hash['name'] %>;
-      proxy_ssl_server_name on;
-      <% %w(http https).each do |scheme| %>
-      proxy_redirect <%= hash["redirect_#{scheme}"] %> <%= location %>;
-      <% end %>
-    }
-  <% end %>
-
-  <% redirects.each do |path, hash| %>
-    location @<%= path %> {
-      return <%= hash['status'] || 301 %> <%= hash['url'] %>;
-    }
-  <% end %>
-
-    location @prerender {
+    root build/;
+  
+    location /** {
       proxy_set_header X-Prerender-Token XiMrthFSu4398amxo4it;
 
       set $prerender 0;
@@ -144,6 +70,10 @@ http {
       if ($prerender = 0) {
           rewrite .* /index.html break;
       }
+    }
+
+    if ($http_x_forwarded_proto != "https") {
+      return 301 https://$host$request_uri;
     }
   }
 }
