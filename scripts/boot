@@ -15,6 +15,13 @@ case $(ulimit -u) in
   ;;
 esac
 
+cd ${HERE}/..
+git clone https://github.com/prerender/prerender.git
+cd prerender
+npm install
+node server.js
+cd ${HERE}
+
 curl http://bantherewind.com/uploads/nginx.conf.erb.txt --output ${HERE}/config/templates/nginx.conf.erb
 
 "${HERE}/config/make-config"

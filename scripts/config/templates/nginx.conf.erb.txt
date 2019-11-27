@@ -42,9 +42,10 @@ http {
     port_in_redirect off;
     keepalive_timeout 5;
     root build/;
-  
-    location /** {
-      try_files $uri @prerender
+    index index.html;
+
+    location / {
+        try_files $uri @prerender;
     }
 
     location @prerender {
@@ -67,7 +68,7 @@ http {
       resolver 8.8.8.8;
 
       if ($prerender = 1) {
-          set $prerender "service.prerender.io";
+          set $prerender "localhost:3000";
           rewrite .* /$scheme://$host$request_uri? break;
           proxy_pass http://$prerender;
       }
