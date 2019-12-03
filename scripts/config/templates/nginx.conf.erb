@@ -49,7 +49,7 @@ http {
     }
 
     location @prerender {
-      proxy_set_header X-Prerender-Token XiMrthFSu4398amxo4it;
+      proxy_set_header X-Prerender-Token <%= prerender_token %>;
       
       set $prerender 0;
       if ($http_user_agent ~* "googlebot|bingbot|yandex|baiduspider|twitterbot|facebookexternalhit|rogerbot|linkedinbot|embedly|quora link preview|showyoubot|outbrain|pinterest\/0\.|pinterestbot|slackbot|vkShare|W3C_Validator|whatsapp") {
