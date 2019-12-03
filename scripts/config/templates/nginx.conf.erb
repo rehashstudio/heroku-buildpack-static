@@ -41,8 +41,8 @@ http {
     charset <%= encoding %>;
     port_in_redirect off;
     keepalive_timeout 5;
-    root build/;
-    index  index.html;
+    root <%= root %>;
+    index index.html;
 
     location / {
       try_files $uri @prerender;
