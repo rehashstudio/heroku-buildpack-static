@@ -48,6 +48,14 @@ http {
       return 301 https://$host$request_uri;
     }
 
+    location ~ ^/(sitemap.xml) {
+      try_files $uri =404;
+    }
+
+    location ~ ^/(robots.txt) {
+      try_files $uri =404;
+    }
+
     location / {
       add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
       try_files $uri @prerender;
