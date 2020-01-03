@@ -49,25 +49,6 @@ http {
     }
 
     location ~ ^/(sitemap.xml) {
-      try_files $uri =404;
-    }
-
-    location ~ ^/(robots.txt) {
-      try_files $uri =404;
-    }
-
-    location / {
-      add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
-      try_files $uri @prerender;
-    }
-
-    location /static/ {
-      expires 30d;
-      add_header Pragma public;
-      add_header Cache-Control "public";
-    }
-
-    location /sitemap.xml {
       resolver 8.8.8.8;
 
       limit_except GET {
@@ -87,6 +68,21 @@ http {
       error_page 403 =404;
 
       proxy_pass https://hero-traveler.s3.amazonaws.com/sitemap/sitemap.xml;
+    }
+
+    location ~ ^/(robots.txt) {
+      try_files $uri =404;
+    }
+
+    location / {
+      add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+      try_files $uri @prerender;
+    }
+
+    location /static/ {
+      expires 30d;
+      add_header Pragma public;
+      add_header Cache-Control "public";
     }
 
     location @prerender {
