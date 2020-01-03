@@ -48,7 +48,7 @@ http {
       return 301 https://$host$request_uri;
     }
 
-    location ~ ^/(sitemap.xml) {
+    location /sitemap.xml {
       resolver 8.8.8.8;
 
       limit_except GET {
