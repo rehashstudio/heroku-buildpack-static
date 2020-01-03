@@ -67,7 +67,31 @@ http {
       add_header Cache-Control "public";
     }
 
+    location /sitemap.xml {
+      resolver 8.8.8.8;
+
+      limit_except GET {
+        deny all;
+      }
+
+      proxy_ignore_headers set-cookie;
+      proxy_hide_header set-cookie;
+      proxy_set_header cookie "";
+      proxy_hide_header x-amz-delete-marker;
+      proxy_hide_header x-amz-id-2;
+      proxy_hide_header x-amz-request-id;
+      proxy_hide_header x-amz-version-id;
+      proxy_hide_header etag;
+
+      proxy_intercept_errors on;
+      error_page 403 =404;
+
+      proxy_pass https://hero-traveler.s3.amazonaws.com/sitemap/sitemap.xml;
+    }
+
     location @prerender {
+      resolver 8.8.8.8;
+
       proxy_set_header X-Prerender-Token <%= prerender_token %>;
       
       set $prerender 0;
@@ -83,8 +107,6 @@ http {
       if ($uri ~* "\.(js|css|xml|less|png|jpg|jpeg|gif|pdf|doc|txt|ico|rss|zip|mp3|rar|exe|wmv|doc|avi|ppt|mpg|mpeg|tif|wav|mov|psd|ai|xls|mp4|m4a|swf|dat|dmg|iso|flv|m4v|torrent|ttf|woff|svg|eot)") {
         set $prerender 0;
       }
-
-      resolver 8.8.8.8;
 
       if ($prerender = 1) {
         set $prerender "service.prerender.io";
