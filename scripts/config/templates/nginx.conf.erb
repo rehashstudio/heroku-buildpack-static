@@ -67,7 +67,7 @@ http {
       proxy_intercept_errors on;
       error_page 403 =404;
 
-      proxy_pass https://hero-traveler.s3.amazonaws.com/sitemap/sitemap.xml;
+      proxy_pass https://s3.amazonaws.com/assets.herotraveler.com/sitemap/sitemap.xml;
     }
 
     location ~ ^/(robots.txt) {
